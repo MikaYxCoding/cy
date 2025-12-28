@@ -11,10 +11,12 @@
 
 #pragma once
 
+#include "core.hpp"
 #include <algorithm>
 #include <functional>
 #include <stdexcept>
 #include <type_traits>
+
 namespace cy {
 template<typename T>
 class Maybe;
@@ -127,39 +129,39 @@ class Maybe
     /**
      * @brief Gets a const reference to `T` (`T const&`).
      *
-     * @exception std::runtime_error Thrown if `Maybe<T>` doesn't actually have
+     * @exception cy::get_none_error Thrown if `Maybe<T>` doesn't actually have
      * a value.
      */
     constexpr T const &get() const &
     {
         if (!this->has_value)
-            throw std::runtime_error("Called .get() on a none value");
+            throw get_none_error();
 
         return this->get_unchecked();
     }
     /**
      * @brief Gets a reference to `T` (`T&`).
      *
-     * @exception std::runtime_error Thrown if `Maybe<T>` doesn't actually have
+     * @exception cy::get_none_error Thrown if `Maybe<T>` doesn't actually have
      * a value.
      */
     constexpr T &get() &
     {
         if (!this->has_value)
-            throw std::runtime_error("Called .get() on a none value");
+            throw get_none_error();
 
         return this->get_unchecked();
     }
     /**
      * @brief Unwraps the value in `Maybe<T>`, allowing to move it out.
      *
-     * @exception std::runtime_error Thrown if `Maybe<T>` doesn't actually have
-     * a value.
+     * @exception cy::unwrap_none_error Thrown if `Maybe<T>` doesn't actually
+     * have a value.
      */
     constexpr T &&unwrap()
     {
         if (!this->has_value)
-            throw std::runtime_error("Called .unwrap() on a none value");
+            throw unwrap_none_error();
 
         return this->unwrap_unchecked();
     }
@@ -274,13 +276,13 @@ class Maybe<T &>
     /**
      * @brief Unwraps the reference in `Maybe<T&>`, allowing to move it out.
      *
-     * @exception std::runtime_error Thrown if `Maybe<T&>` doesn't actually have
-     * a reference.
+     * @exception cy::unwrap_none_error Thrown if `Maybe<T&>` doesn't actually
+     * have a reference.
      */
     constexpr T &unwrap()
     {
         if (!this->has_value)
-            throw std::runtime_error("Called .unwrap() on a none value");
+            throw unwrap_none_error();
 
         return this->unwrap_unchecked();
     }

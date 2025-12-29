@@ -12,11 +12,23 @@
 #pragma once
 
 #include "CY/core.hpp"
+#include "CY/result.hpp"
 #include <algorithm>
 #include <functional>
 #include <type_traits>
 
 namespace cy {
+/**
+ * @brief Represents an operation that might fail. It returns `Ok` on success,
+ * and `Err` on failure. This is a template specialization for the most common
+ * use case of `Result<T, str>` (the error type is just an string error
+ * message). If you want to return some other error type, use
+ * cy::basic_result::Result, and specialize cy::error_formatter for you error
+ * type.
+ */
+template<typename T>
+using Result = basic_result::Result<T, str>;
+
 template<typename T>
 class Maybe;
 
@@ -302,4 +314,4 @@ class Maybe<T&>
         return None();
     }
 };
-}
+} // namespace cy

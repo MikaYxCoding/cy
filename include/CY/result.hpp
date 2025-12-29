@@ -14,7 +14,7 @@
 #include "CY/core.hpp"
 #include <algorithm>
 
-namespace cy::basic_result {
+namespace cy {
 template<typename _Ty>
 class Ok;
 
@@ -66,6 +66,11 @@ namespace detail {
     };
 } // namespace detail
 
+/**
+ * @brief Represents an operation that succeeded and returned a value of type
+ * `T`.
+ *
+ */
 template<typename _Ty>
 class Ok
 {
@@ -162,6 +167,10 @@ class Ok
     T m_Value;
 };
 
+/**
+ * @brief Represents an operation that succeeded and does not return a value.
+ *
+ */
 template<>
 class Ok<void>
 {
@@ -170,6 +179,11 @@ class Ok<void>
 };
 Ok() -> Ok<void>;
 
+/**
+ * @brief Represents an operation that failed and returned an error of type
+ * `E`.
+ *
+ */
 template<typename E>
 class Err
 {
@@ -213,241 +227,252 @@ class Err
     E m_Error;
 };
 
-template<typename _Ty, typename E>
-class [[nodiscard("Result must be handled")]] Result
-{
-    static_assert(
-        !std::is_reference<E>::value,
-        "Result<T, E&> and Err<E&> are invalid! Result must own the error");
-    static_assert(!std::is_same<E, void>::value,
-                  "Result<T, void> and Err<void> are invalid! Consider "
-                  "Maybe<T> instead.");
-
-  public:
-    constexpr Result(Ok<_Ty> ok)
-        : m_Value(detail::_ResultConstruct::construct_ok_result<_Ty>(ok))
-        , m_IsError(false)
-        , m_HasValue(true)
-    {
-    }
-
-    constexpr Result(Err<E> err)
-        : m_Error(err.take())
-        , m_IsError(true)
-        , m_HasValue(true)
-    {
-    }
-
-    explicit Result(Result const&) = default;
-    Result& operator=(Result const&) = default;
-    Result(Result&&) = default;
-    Result& operator=(Result&&) = default;
-
+namespace basic_result {
     /**
-     * @brief Whether or not this `Result` contains an error (`Èrr`).
+     * @brief Represents an operation that might fail, returning `Ok` on
+     * success, and `Err` on failure.
      *
-     * @return true If it does.
-     * @return false If it doesn't.
      */
-    inline constexpr bool is_error() const { return m_IsError; }
-    /**
-     * @brief Whether or not this `Result` contains a value (`Ok`).
-     *
-     * @return true If it does.
-     * @return false If it doesn't.
-     */
-    inline constexpr bool is_ok() const { return !m_IsError; }
-
-    /**
-     * @brief Gets a const reference (`T const&`) to the value owned by
-     * `Result`. If `Result` owns a reference, the reference is returned as a
-     * const reference.
-     *
-     * @throws cy::get_on_err_error Thrown if `Result` is an error.
-     * @throws cy::bad_result Thrown if `Result` does not own a value or
-     * reference.
-     */
-    [[nodiscard]] inline constexpr auto const& get() const&
+    template<typename _Ty, typename E>
+    class [[nodiscard("Result must be handled")]] Result
     {
-        if (!m_HasValue)
-            throw bad_result();
-        if (m_IsError)
-            throw get_on_err_error(error_formatter<E>::readable(m_Error));
+        static_assert(
+            !std::is_reference<E>::value,
+            "Result<T, E&> and Err<E&> are invalid! Result must own the error");
+        static_assert(!std::is_same<E, void>::value,
+                      "Result<T, void> and Err<void> are invalid! Consider "
+                      "Maybe<T> instead.");
 
-        return this->get_unchecked();
-    }
+      public:
+        constexpr Result(Ok<_Ty> ok)
+            : m_Value(detail::_ResultConstruct::construct_ok_result<_Ty>(ok))
+            , m_IsError(false)
+            , m_HasValue(true)
+        {
+        }
 
-    /**
-     * @brief Gets a reference (`T&`) to the value owned by
-     * `Result`. If `Result` owns a reference, that reference is returned.
-     *
-     * @throws cy::get_on_err_error Thrown if `Result` is an error.
-     * @throws cy::bad_result Thrown if `Result` does not own a value or
-     * reference.
-     */
-    [[nodiscard]] inline constexpr auto& get() &
-    {
-        if (!m_HasValue)
-            throw bad_result();
-        if (m_IsError)
-            throw get_on_err_error(error_formatter<E>::readable(m_Error));
+        constexpr Result(Err<E> err)
+            : m_Error(err.take())
+            , m_IsError(true)
+            , m_HasValue(true)
+        {
+        }
 
-        return this->get_unchecked();
-    }
+        explicit Result(Result const&) = default;
+        Result& operator=(Result const&) = default;
+        Result(Result&&) = default;
+        Result& operator=(Result&&) = default;
 
-    /**
-     * @brief Gets an rvalue reference (`T&&`) to the value owned by `Result`,
-     * allowing to move it out of it. If `Result` owns a reference, that
-     * reference is moved out.
-     *
-     * @throws cy::unwrap_on_err_error Thrown if `Result` is an error.
-     * @throws cy::bad_result Thrown if `Result` does not own a value or
-     * reference.
-     */
-    [[nodiscard]] inline constexpr auto&& unwrap()
-    {
-        if (!m_HasValue)
-            throw bad_result();
-        if (m_IsError)
-            throw unwrap_on_err_error(error_formatter<E>::readable(m_Error));
+        /**
+         * @brief Whether or not this `Result` contains an error (`Èrr`).
+         *
+         * @return true If it does.
+         * @return false If it doesn't.
+         */
+        inline constexpr bool is_error() const { return m_IsError; }
+        /**
+         * @brief Whether or not this `Result` contains a value (`Ok`).
+         *
+         * @return true If it does.
+         * @return false If it doesn't.
+         */
+        inline constexpr bool is_ok() const { return !m_IsError; }
 
-        return this->unwrap_unchecked();
-    }
+        /**
+         * @brief Gets a const reference (`T const&`) to the value owned by
+         * `Result`. If `Result` owns a reference, the reference is returned as
+         * a const reference.
+         *
+         * @throws cy::get_on_err_error Thrown if `Result` is an error.
+         * @throws cy::bad_result Thrown if `Result` does not own a value or
+         * reference.
+         */
+        [[nodiscard]] inline constexpr auto const& get() const&
+        {
+            if (!m_HasValue)
+                throw bad_result();
+            if (m_IsError)
+                throw get_on_err_error(error_formatter<E>::readable(m_Error));
 
-    /**
-     * @brief Gets a const reference (`E const&`) to the error owned by
-     * `Result`.
-     *
-     * @throws cy::get_on_ok_error Thrown if `Result` is not an error.
-     * @throws cy::bad_result Thrown if `Result` does not own an error.
-     */
-    [[nodiscard]] inline constexpr E const& get_err() const&
-    {
-        if (!m_HasValue)
-            throw bad_result();
-        if (!m_IsError)
-            throw get_on_ok_error();
+            return this->get_unchecked();
+        }
 
-        return this->get_err_unchecked();
-    }
+        /**
+         * @brief Gets a reference (`T&`) to the value owned by
+         * `Result`. If `Result` owns a reference, that reference is returned.
+         *
+         * @throws cy::get_on_err_error Thrown if `Result` is an error.
+         * @throws cy::bad_result Thrown if `Result` does not own a value or
+         * reference.
+         */
+        [[nodiscard]] inline constexpr auto& get() &
+        {
+            if (!m_HasValue)
+                throw bad_result();
+            if (m_IsError)
+                throw get_on_err_error(error_formatter<E>::readable(m_Error));
 
-    /**
-     * @brief Gets a reference (`E&`) to the error owned by
-     * `Result`.
-     *
-     * @throws cy::get_on_ok_error Thrown if `Result` is not an error.
-     * @throws cy::bad_result Thrown if `Result` does not own an error.
-     */
-    [[nodiscard]] inline constexpr E& get_err() &
-    {
-        if (!m_HasValue)
-            throw bad_result();
-        if (!m_IsError)
-            throw get_on_ok_error();
+            return this->get_unchecked();
+        }
 
-        return this->get_err_unchecked();
-    }
+        /**
+         * @brief Gets an rvalue reference (`T&&`) to the value owned by
+         * `Result`, allowing to move it out of it. If `Result` owns a
+         * reference, that reference is moved out.
+         *
+         * @throws cy::unwrap_on_err_error Thrown if `Result` is an error.
+         * @throws cy::bad_result Thrown if `Result` does not own a value or
+         * reference.
+         */
+        [[nodiscard]] inline constexpr auto&& unwrap()
+        {
+            if (!m_HasValue)
+                throw bad_result();
+            if (m_IsError)
+                throw unwrap_on_err_error(
+                    error_formatter<E>::readable(m_Error));
 
-    /**
-     * @brief Gets an rvalue reference (`E&&`) to the error owned by
-     * `Result`, allowing to move it out.
-     *
-     * @throws cy::unwrap_on_ok_error Thrown if `Result` is not an error.
-     * @throws cy::bad_result Thrown if `Result` does not own an error.
-     */
-    [[nodiscard]] inline constexpr E&& unwrap_err()
-    {
-        if (!m_HasValue)
-            throw bad_result();
-        if (!m_IsError)
-            throw unwrap_on_ok_error();
+            return this->unwrap_unchecked();
+        }
 
-        return this->unwrap_err_unchecked();
-    }
+        /**
+         * @brief Gets a const reference (`E const&`) to the error owned by
+         * `Result`.
+         *
+         * @throws cy::get_on_ok_error Thrown if `Result` is not an error.
+         * @throws cy::bad_result Thrown if `Result` does not own an error.
+         */
+        [[nodiscard]] inline constexpr E const& get_err() const&
+        {
+            if (!m_HasValue)
+                throw bad_result();
+            if (!m_IsError)
+                throw get_on_ok_error();
 
-    /**
-     * @brief Converts this `Result` into a boolean.
-     *
-     * @return true If the `Result` contains a value (`Result` is `Ok`).
-     * @return false If the `Result` contains an error (`Result` is `Err`).
-     */
-    operator bool() const { return !m_IsError; }
+            return this->get_err_unchecked();
+        }
 
-  private:
-    using T = detail::_PtrIfRef<_Ty>;
+        /**
+         * @brief Gets a reference (`E&`) to the error owned by
+         * `Result`.
+         *
+         * @throws cy::get_on_ok_error Thrown if `Result` is not an error.
+         * @throws cy::bad_result Thrown if `Result` does not own an error.
+         */
+        [[nodiscard]] inline constexpr E& get_err() &
+        {
+            if (!m_HasValue)
+                throw bad_result();
+            if (!m_IsError)
+                throw get_on_ok_error();
 
-    union
-    {
-        T m_Value;
-        E m_Error;
-    };
-    bool m_IsError;
-    bool m_HasValue;
+            return this->get_err_unchecked();
+        }
 
-    template<typename T = _Ty>
-    inline constexpr
-        typename std::enable_if<!detail::_IsRef<T>::value, T>::type const&
+        /**
+         * @brief Gets an rvalue reference (`E&&`) to the error owned by
+         * `Result`, allowing to move it out.
+         *
+         * @throws cy::unwrap_on_ok_error Thrown if `Result` is not an error.
+         * @throws cy::bad_result Thrown if `Result` does not own an error.
+         */
+        [[nodiscard]] inline constexpr E&& unwrap_err()
+        {
+            if (!m_HasValue)
+                throw bad_result();
+            if (!m_IsError)
+                throw unwrap_on_ok_error();
+
+            return this->unwrap_err_unchecked();
+        }
+
+        /**
+         * @brief Converts this `Result` into a boolean.
+         *
+         * @return true If the `Result` contains a value (`Result` is `Ok`).
+         * @return false If the `Result` contains an error (`Result` is `Err`).
+         */
+        operator bool() const { return !m_IsError; }
+
+      private:
+        using T = detail::_PtrIfRef<_Ty>;
+
+        union
+        {
+            T m_Value;
+            E m_Error;
+        };
+        bool m_IsError;
+        bool m_HasValue;
+
+        template<typename T = _Ty>
+        inline constexpr
+            typename std::enable_if<!detail::_IsRef<T>::value, T>::type const&
+            get_unchecked() const&
+        {
+            return m_Value;
+        }
+
+        template<typename T = _Ty>
+        [[nodiscard]] inline constexpr
+            typename std::enable_if<!detail::_IsRef<T>::value, T>::type&
+            get_unchecked() &
+        {
+            return m_Value;
+        }
+
+        template<typename T = _Ty>
+        [[nodiscard]] inline constexpr typename std::enable_if<
+            detail::_IsRef<T>::value,
+            typename std::remove_reference<T>::type>::type const&
         get_unchecked() const&
-    {
-        return m_Value;
-    }
+        {
+            return *m_Value;
+        }
 
-    template<typename T = _Ty>
-    [[nodiscard]] inline constexpr
-        typename std::enable_if<!detail::_IsRef<T>::value, T>::type&
-        get_unchecked() &
-    {
-        return m_Value;
-    }
+        template<typename T = _Ty>
+        [[nodiscard]] inline constexpr
+            typename std::enable_if<detail::_IsRef<T>::value, T>::type
+            get_unchecked() &
+        {
+            return *m_Value;
+        }
 
-    template<typename T = _Ty>
-    [[nodiscard]] inline constexpr typename std::enable_if<
-        detail::_IsRef<T>::value,
-        typename std::remove_reference<T>::type>::type const&
-    get_unchecked() const&
-    {
-        return *m_Value;
-    }
+        template<typename T = _Ty>
+        [[nodiscard]] inline constexpr
+            typename std::enable_if<!detail::_IsRef<T>::value, T>::type&&
+            unwrap_unchecked()
+        {
+            m_HasValue = false;
+            return std::move(m_Value);
+        }
 
-    template<typename T = _Ty>
-    [[nodiscard]] inline constexpr
-        typename std::enable_if<detail::_IsRef<T>::value, T>::type
-        get_unchecked() &
-    {
-        return *m_Value;
-    }
+        template<typename T = _Ty>
+        [[nodiscard]] inline constexpr
+            typename std::enable_if<detail::_IsRef<T>::value, T>::type
+            unwrap_unchecked()
+        {
+            m_HasValue =
+                false; // technically we're not actually moving anything out of
+                       // Result, so this could still be true and it should be
+                       // fine. But since the behavior is that unwrap moves out
+                       // of result, we'll pretend it also does here.
+            return *m_Value;
+        }
 
-    template<typename T = _Ty>
-    [[nodiscard]] inline constexpr
-        typename std::enable_if<!detail::_IsRef<T>::value, T>::type&&
-        unwrap_unchecked()
-    {
-        m_HasValue = false;
-        return std::move(m_Value);
-    }
-
-    template<typename T = _Ty>
-    [[nodiscard]] inline constexpr
-        typename std::enable_if<detail::_IsRef<T>::value, T>::type
-        unwrap_unchecked()
-    {
-        m_HasValue =
-            false; // technically we're not actually moving anything out of
-                   // Result, so this could still be true and it should be fine.
-                   // But since the behavior is that unwrap moves out of
-                   // result, we'll pretend it also does here.
-        return *m_Value;
-    }
-
-    [[nodiscard]] inline constexpr E const& get_err_unchecked() const&
-    {
-        return m_Error;
-    }
-    [[nodiscard]] inline constexpr E&  get_err_unchecked() & { return m_Error; }
-    [[nodiscard]] inline constexpr E&& unwrap_err_unchecked()
-    {
-        m_HasValue = false;
-        return std::move(m_Error);
-    }
-};
-} // namespace cy::basic_result
+        [[nodiscard]] inline constexpr E const& get_err_unchecked() const&
+        {
+            return m_Error;
+        }
+        [[nodiscard]] inline constexpr E& get_err_unchecked() &
+        {
+            return m_Error;
+        }
+        [[nodiscard]] inline constexpr E&& unwrap_err_unchecked()
+        {
+            m_HasValue = false;
+            return std::move(m_Error);
+        }
+    };
+} // namespace basic_result
+} // namespace cy

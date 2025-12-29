@@ -38,7 +38,7 @@ namespace cy {
 CY_DEFINE_RUNTIME_ERROR(unwrap_none_error, "called .unwrap() on a None value");
 CY_DEFINE_RUNTIME_ERROR(get_none_error, "called .get() on a None value");
 CY_DEFINE_RUNTIME_ERROR(bad_result,
-                        "Result<T> had a value but was unwrapped, aka Result "
+                        "Result<T> had a value but was unwrapped, i.e. Result "
                         "does not own it anymore.");
 CY_DEFINE_RUNTIME_ERROR(unwrap_on_ok_error,
                         "called .unwrap_err() on a Ok value");
@@ -71,4 +71,4 @@ struct error_formatter<str>
 
     static constexpr auto readable(str e) { return e; }
 };
-}
+} // namespace cy

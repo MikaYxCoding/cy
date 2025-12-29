@@ -24,67 +24,51 @@
         }                                                                      \
     }
 
+#define CY_DEFINE_READABLE_RUNTIME_ERROR(symbol, message)                      \
+    class symbol : std::runtime_error                                          \
+    {                                                                          \
+      public:                                                                  \
+        symbol(str readableErr)                                                \
+            : std::runtime_error(std::string(message) + readableErr)           \
+        {                                                                      \
+        }                                                                      \
+    }
+
 namespace cy {
 CY_DEFINE_RUNTIME_ERROR(unwrap_none_error, "called .unwrap() on a None value");
 CY_DEFINE_RUNTIME_ERROR(get_none_error, "called .get() on a None value");
 CY_DEFINE_RUNTIME_ERROR(bad_result,
                         "Result<T> had a value but was unwrapped, aka Result "
                         "does not own it anymore.");
+CY_DEFINE_RUNTIME_ERROR(unwrap_on_ok_error,
+                        "called .unwrap_err() on a Ok value");
+CY_DEFINE_RUNTIME_ERROR(get_on_ok_error, "called .get_err() on a Ok value");
+
+CY_DEFINE_READABLE_RUNTIME_ERROR(unwrap_on_err_error,
+                                 "called .unwrap() on an Err value: ");
+CY_DEFINE_READABLE_RUNTIME_ERROR(get_on_err_error,
+                                 "called .get() on an Err value: ");
 
 template<typename E>
 struct error_formatter
 {
+    static_assert(false,
+                  "no specialization for the provided typename! Create an "
+                  "specialization of error_formatter with your error type "
+                  "to use with Result.");
+
   public:
-    constexpr error_formatter() = default;
+    error_formatter() = delete;
 
-    constexpr uint64 code(E const &) const
-    {
-        static_assert(false,
-                      "no specialization for the provided typename! Create an "
-                      "specialization of error_formatter with your error type "
-                      "to use with Result.");
-        return 0;
-    }
-
-    constexpr str readable(E const &) const
-    {
-        static_assert(false,
-                      "no specialization for the provided typename! Create an "
-                      "specialization of error_formatter with your error type "
-                      "to use with Result.");
-        return nullptr;
-    }
-
-    constexpr str readable_code(E const &) const
-    {
-        static_assert(false,
-                      "no specialization for the provided typename! Create an "
-                      "specialization of error_formatter with your error type "
-                      "to use with Result.");
-        return nullptr;
-    }
-};
-
-template<>
-struct error_formatter<std::exception>
-{
-    constexpr error_formatter() = default;
-
-    constexpr uint64 code(std::exception const &) const { return 1; }
-    constexpr str readable(std::exception const &e) const { return e.what(); }
-    constexpr str readable_code(std::exception const &) const
-    {
-        return "std::exception";
-    }
+    static constexpr str readable(E const &) { return nullptr; }
 };
 
 template<>
 struct error_formatter<str>
 {
-    constexpr error_formatter() = default;
+  public:
+    error_formatter() = delete;
 
-    constexpr uint64 code(str const &) const { return 1; }
-    constexpr str    readable(str const &e) const { return e; }
-    constexpr str    readable_code(str const &) const { return "ERROR"; }
+    static constexpr auto readable(str e) { return e; }
 };
 }

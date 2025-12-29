@@ -5,7 +5,7 @@
  * @version 1.0.0
  * @date 2025-12-28
  *
- * @copyright Copyright (c) 2025 Jesús Blanco
+ * @copyright Copyright (c) Jesús Blanco. See LICENSE for details.
  *
  */
 

@@ -2,8 +2,8 @@
  * @file safety.hpp
  * @author Jesús Blanco
  * @brief General code safety with value/error and value/none classes.
- * @version 2.0.0
- * @date 2025-06-27
+ * @version 3.0.0
+ * @date 2025-12-28
  *
  * @copyright Copyright (c) Jesús Blanco. See LICENSE for details.
  *

@@ -244,6 +244,21 @@ class [[nodiscard("Result must be handled")]] Result
     Result& operator=(Result&&) = default;
 
     /**
+     * @brief Whether or not this `Result` contains an error (`Èrr`).
+     *
+     * @return true If it does.
+     * @return false If it doesn't.
+     */
+    inline constexpr bool is_error() const { return m_IsError; }
+    /**
+     * @brief Whether or not this `Result` contains a value (`Ok`).
+     *
+     * @return true If it does.
+     * @return false If it doesn't.
+     */
+    inline constexpr bool is_ok() const { return !m_IsError; }
+
+    /**
      * @brief Gets a const reference (`T const&`) to the value owned by
      * `Result`. If `Result` owns a reference, the reference is returned as a
      * const reference.
@@ -349,6 +364,14 @@ class [[nodiscard("Result must be handled")]] Result
 
         return this->unwrap_err_unchecked();
     }
+
+    /**
+     * @brief Converts this `Result` into a boolean.
+     *
+     * @return true If the `Result` contains a value (`Result` is `Ok`).
+     * @return false If the `Result` contains an error (`Result` is `Err`).
+     */
+    operator bool() const { return !m_IsError; }
 
   private:
     using T = detail::_PtrIfRef<_Ty>;

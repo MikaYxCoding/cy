@@ -15,7 +15,7 @@
 #include <stdexcept>
 
 #define CY_DEFINE_RUNTIME_ERROR(symbol, message)                               \
-    class symbol : std::runtime_error                                          \
+    class symbol : public std::runtime_error                                   \
     {                                                                          \
       public:                                                                  \
         symbol()                                                               \
@@ -25,7 +25,7 @@
     }
 
 #define CY_DEFINE_READABLE_RUNTIME_ERROR(symbol, message)                      \
-    class symbol : std::runtime_error                                          \
+    class symbol : public std::runtime_error                                   \
     {                                                                          \
       public:                                                                  \
         symbol(str readableErr)                                                \
@@ -60,7 +60,7 @@ struct error_formatter
   public:
     error_formatter() = delete;
 
-    static constexpr str readable(E const &) { return nullptr; }
+    static constexpr str readable(E const&) { return nullptr; }
 };
 
 template<>

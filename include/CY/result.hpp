@@ -258,13 +258,23 @@ namespace basic_result {
         {
         }
 
+        // FIXME: This destructor should only exist when either T or E aren't
+        // trivially destructible.
+        ~Result()
+        {
+            if (m_HasValue && !m_IsError)
+                m_Value.~T();
+            else if (m_HasValue)
+                m_Error.~E();
+        }
+
         explicit Result(Result const&) = default;
         Result& operator=(Result const&) = default;
         Result(Result&&) = default;
         Result& operator=(Result&&) = default;
 
         /**
-         * @brief Whether or not this `Result` contains an error (`Èrr`).
+         * @brief Whether or not this `Result` contains an error (`Err`).
          *
          * @return true If it does.
          * @return false If it doesn't.

@@ -53,6 +53,14 @@ static NetworkResult<str> GetResourceById(uint32 id)
     return cy::Ok(resources[id]);
 }
 
+static NetworkResult<void> SendPing()
+{
+    // *clearly sending stuff here*
+
+    // oops!
+    return cy::Err(NetworkError::ConnectionLost);
+}
+
 int32 main(void)
 {
     std::vector<int32> ints = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
@@ -100,6 +108,18 @@ int32 main(void)
         std::printf("Somehow got our resource: %s\n", resourceResult.unwrap());
     } catch (cy::unwrap_on_err_error err) {
         std::printf("Caught an (expected) error: %s\n", err.what());
+    }
+
+    auto pingResult = SendPing();
+    assert(pingResult.is_error() && !pingResult.is_ok());
+    std::printf(
+        "Got this error: %s\n",
+        cy::error_formatter<NetworkError>::readable(pingResult.get_err()));
+
+    try {
+        pingResult.unwrap();
+    } catch (cy::unwrap_on_err_error e) {
+        std::printf("Caught an (expected) error: %s\n", e.what());
     }
 
     std::printf("All good!\n");

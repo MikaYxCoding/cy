@@ -402,7 +402,7 @@ namespace basic_result {
          * @return true If the `Result` contains a value (`Result` is `Ok`).
          * @return false If the `Result` contains an error (`Result` is `Err`).
          */
-        operator bool() const { return !m_IsError; }
+        constexpr operator bool() const { return !m_IsError; }
 
       private:
         using T = detail::_PtrIfRef<_Ty>;
@@ -481,6 +481,154 @@ namespace basic_result {
         [[nodiscard]] inline constexpr E&& unwrap_err_unchecked()
         {
             m_HasValue = false;
+            return std::move(m_Error);
+        }
+    };
+
+    /**
+     * @brief Represents an operation that might fail, returning nothing
+     * (`Ok<void>`) on success, and `Err` on failure.
+     *
+     */
+    template<typename E>
+    class [[nodiscard("Result must be handled")]] Result<void, E>
+    {
+        static_assert(
+            !std::is_reference<E>::value,
+            "Result<T, E&> and Err<E&> are invalid! Result must own the error");
+        static_assert(!std::is_same<E, void>::value,
+                      "Result<T, void> and Err<void> are invalid! Consider "
+                      "Maybe<T> instead.");
+
+      public:
+        constexpr Result(Ok<void>)
+            : m_IsError(false)
+            , m_HasError(false)
+        {
+        }
+
+        constexpr Result(Err<E> err)
+            : m_Error(err.take())
+            , m_IsError(true)
+            , m_HasError(true)
+        {
+        }
+
+        // FIXME: This destructor should only exist when E is not trivially
+        // destructible.
+        ~Result()
+        {
+            if (m_HasError)
+                m_Error.~E();
+        }
+
+        /**
+         * @brief Whether or not this `Result` contains an error (`Err`).
+         *
+         * @return true If it does.
+         * @return false If it doesn't.
+         */
+        inline constexpr bool is_error() const { return m_IsError; }
+        /**
+         * @brief Whether or not this `Result` is `Ok`.
+         *
+         * @return true If it is.
+         * @return false If it isn't.
+         */
+        inline constexpr bool is_ok() const { return !m_IsError; }
+
+        /**
+         * @brief "Gets" the void owned by the `Result`. It's really a
+         * convenience to simply unwrap `Result`s even if they don't return a
+         * vlaue.
+         *
+         * @throws cy::unwrap_on_err_error Thrown if `Result` is an error.
+         */
+        inline void unwrap()
+        {
+            if (m_IsError)
+                throw unwrap_on_err_error(
+                    error_formatter<E>::readable(m_Error));
+        }
+
+        /**
+         * @brief Gets a const reference (`E const&`) to the error owned by
+         * `Result`.
+         *
+         * @throws cy::get_on_ok_error Thrown if `Result` is not an error.
+         * @throws cy::bad_result Thrown if `Result` does not own an error.
+         */
+        [[nodiscard]] inline constexpr E const& get_err() const&
+        {
+            if (!m_HasError)
+                throw bad_result();
+            if (!m_IsError)
+                throw get_on_ok_error();
+
+            return this->get_err_unchecked();
+        }
+
+        /**
+         * @brief Gets a reference (`E&`) to the error owned by
+         * `Result`.
+         *
+         * @throws cy::get_on_ok_error Thrown if `Result` is not an error.
+         * @throws cy::bad_result Thrown if `Result` does not own an error.
+         */
+        [[nodiscard]] inline constexpr E& get_err() &
+        {
+            if (!m_HasError)
+                throw bad_result();
+            if (!m_IsError)
+                throw get_on_ok_error();
+
+            return this->get_err_unchecked();
+        }
+
+        /**
+         * @brief Gets an rvalue reference (`E&&`) to the error owned by
+         * `Result`, allowing to move it out.
+         *
+         * @throws cy::unwrap_on_ok_error Thrown if `Result` is not an error.
+         * @throws cy::bad_result Thrown if `Result` does not own an error.
+         */
+        [[nodiscard]] inline constexpr E&& unwrap_err()
+        {
+            if (!m_HasError)
+                throw bad_result();
+            if (!m_IsError)
+                throw unwrap_on_ok_error();
+
+            return this->unwrap_err_unchecked();
+        }
+
+        /**
+         * @brief Converts this `Result` into a boolean.
+         *
+         * @return true If the `Result` is not an error (`Result` is `Ok`).
+         * @return false If the `Result` contains an error (`Result` is `Err`).
+         */
+        constexpr operator bool() const { return !m_IsError; }
+
+      private:
+        union
+        {
+            E m_Error;
+        };
+        bool m_IsError;
+        bool m_HasError;
+
+        [[nodiscard]] inline constexpr E const& get_err_unchecked() const&
+        {
+            return m_Error;
+        }
+        [[nodiscard]] inline constexpr E& get_err_unchecked() &
+        {
+            return m_Error;
+        }
+        [[nodiscard]] inline constexpr E&& unwrap_err_unchecked()
+        {
+            m_HasError = false;
             return std::move(m_Error);
         }
     };

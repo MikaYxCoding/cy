@@ -14,6 +14,45 @@ cy::Result<T const&> FindInVector(std::vector<T> const& vec, T const& value)
     return cy::Err("could not find item in vector");
 }
 
+// More involved example with a custom error.
+enum class NetworkError
+{
+    ConnectionLost,
+    ResourceNotFound
+};
+namespace cy {
+template<>
+struct error_formatter<NetworkError>
+{
+    static constexpr auto readable(NetworkError const& err)
+    {
+        switch (err) {
+            case NetworkError::ConnectionLost:
+                return "Connection lost";
+            case NetworkError::ResourceNotFound:
+                return "Resource not found";
+        }
+    }
+};
+} // namespace cy
+
+// Alias for convenience
+template<typename T>
+using NetworkResult = cy::basic_result::Result<T, NetworkError>;
+
+static NetworkResult<str> GetResourceById(uint32 id)
+{
+    str resources[] = { "Resource 1", "Resource 2", "Resource 3",
+                        "Resource 4", "Resource 5", "Resource 6" };
+
+    // *clearly doing networking here*
+
+    if (id >= _countof(resources))
+        return cy::Err(NetworkError::ResourceNotFound);
+
+    return cy::Ok(resources[id]);
+}
+
 int32 main(void)
 {
     std::vector<int32> ints = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
@@ -41,6 +80,24 @@ int32 main(void)
     // let's try unwrapping it, it should fail.
     try {
         auto _ = result.unwrap();
+    } catch (cy::unwrap_on_err_error err) {
+        std::printf("Caught an (expected) error: %s\n", err.what());
+    }
+
+    // the other example
+    if (auto result = GetResourceById(3))
+        std::printf("Got our resource: %s\n", result.unwrap());
+    else {
+        // might as well use our error_formatter
+        std::printf(
+            "Got an error: %s\n",
+            cy::error_formatter<NetworkError>::readable(result.unwrap_err()));
+    }
+
+    // one that fails
+    auto resourceResult = GetResourceById(24);
+    try {
+        std::printf("Somehow got our resource: %s\n", resourceResult.unwrap());
     } catch (cy::unwrap_on_err_error err) {
         std::printf("Caught an (expected) error: %s\n", err.what());
     }

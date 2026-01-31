@@ -71,4 +71,13 @@ struct error_formatter<str>
 
     static constexpr auto readable(str e) { return e; }
 };
+
+template<>
+struct error_formatter<std::string>
+{
+  public:
+    error_formatter() = delete;
+
+    static constexpr auto readable(std::string const& e) { return e.c_str(); }
+};
 } // namespace cy

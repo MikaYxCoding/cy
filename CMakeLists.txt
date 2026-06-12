@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.31)
 
-project(CY VERSION 3.0.0 LANGUAGES CXX)
+project(CY VERSION 4.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
 
@@ -25,7 +25,7 @@ if (CY_BUILD_EXTRA)
         target_compile_options(maybe PRIVATE /W4)
         target_compile_options(result PRIVATE /W4)
     endif()
-    
+
     target_link_libraries(maybe PRIVATE cy)
     target_link_libraries(result PRIVATE cy)
 endif()

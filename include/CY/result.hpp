@@ -13,6 +13,7 @@
 
 #include "CY/core.hpp"
 #include <algorithm>
+#include <functional>
 
 namespace cy {
 namespace detail {
@@ -66,6 +67,9 @@ namespace result {
     template<typename _Ty, typename _Ety>
     class Result
     {
+        static_assert(!std::is_same<_Ety, void>::value,
+                      "Result<T, void> is invalid! Use Maybe<T> instead");
+
         using T = detail::_PtrIfRef<_Ty>;
         using E = detail::_PtrIfRef<_Ety>;
 
@@ -219,6 +223,45 @@ namespace result {
 
             return *this;
         }
+
+        constexpr bool is_ok() const { return !m_IsError; }
+        constexpr bool is_error() const { return m_IsError; }
+
+        inline bool is_ok_and(std::function<bool(_Ty)> f) const
+            requires detail::_IsRef<_Ty>::value
+        {
+            if (this->is_error())
+                return false;
+
+            return f(*m_Value);
+        }
+
+        inline bool is_ok_and(std::function<bool(_Ty const&)> f) const
+        {
+            if (this->is_error())
+                return false;
+
+            return f(m_Value);
+        }
+
+        inline bool is_err_and(std::function<bool(_Ety)> f) const
+            requires detail::_IsRef<_Ety>::value
+        {
+            if (this->is_ok())
+                return false;
+
+            return f(*m_Error);
+        }
+
+        inline bool is_err_and(std::function<bool(_Ety const&)> f) const
+        {
+            if (this->is_ok())
+                return false;
+
+            return f(m_Error);
+        }
+
+        constexpr operator bool() const { return this->is_ok(); }
 
       private:
         union

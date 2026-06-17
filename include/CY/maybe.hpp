@@ -147,9 +147,25 @@ class Maybe
     inline auto&& unwrap()
     {
         if (this->is_none())
-            throw cy::get_none_error();
+            throw cy::unwrap_none_error();
 
         return this->unwrap_unchecked();
+    }
+
+    inline auto&& get() const
+    {
+        if (this->is_none())
+            throw cy::get_none_error();
+
+        return this->get_unchecked();
+    }
+
+    inline auto&& get()
+    {
+        if (this->is_none())
+            throw cy::get_none_error();
+
+        return this->get_unchecked();
     }
 
     template<typename U>
@@ -182,5 +198,20 @@ class Maybe
         m_HasValue = false;
         return std::move(m_Value);
     }
+
+    inline _Ty get_unchecked() const
+        requires detail::_IsRef<_Ty>::value
+    {
+        return *m_Value;
+    }
+
+    inline _Ty get_unchecked()
+        requires detail::_IsRef<_Ty>::value
+    {
+        return *m_Value;
+    }
+
+    inline _Ty const& get_unchecked() const { return m_Value; }
+    inline _Ty&       get_unchecked() { return m_Value; }
 };
 } // namespace cy

@@ -1,4 +1,4 @@
-#include "CY/safety.hpp"
+#include "CY/result.hpp"
 #include "CY/types.hpp"
 #include <cassert>
 
@@ -38,7 +38,7 @@ struct error_formatter<NetworkError>
 
 // Alias for convenience
 template<typename T>
-using NetworkResult = cy::basic_result::Result<T, NetworkError>;
+using NetworkResult = cy::result::Result<T, NetworkError>;
 
 static NetworkResult<str> GetResourceById(uint32 id)
 {

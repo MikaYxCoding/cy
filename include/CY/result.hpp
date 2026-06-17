@@ -45,6 +45,15 @@ class Ok
     }
 };
 
+template<>
+class Ok<void>
+{
+  public:
+    constexpr explicit Ok() = default;
+};
+
+Ok() -> Ok<void>;
+
 template<typename E>
 class Err
 {
@@ -174,7 +183,7 @@ namespace result {
             if (!other.m_HasValue) {
                 m_HasValue = false;
                 m_IsError = other.m_IsError;
-                return;
+                return *this;
             }
 
             m_HasValue = true;
@@ -211,7 +220,7 @@ namespace result {
             if (!source.m_HasValue) {
                 m_HasValue = false;
                 m_IsError = source.m_IsError;
-                return;
+                return *this;
             }
 
             m_HasValue = true;
@@ -267,6 +276,8 @@ namespace result {
                 throw cy::unwrap_on_err_error(
                     cy::error_formatter<typename std::remove_reference<
                         _Ety>::type>::readable(this->get_err_unchecked()));
+            if (!this->m_HasValue)
+                throw cy::bad_result();
 
             return this->unwrap_unchecked();
         }
@@ -275,6 +286,8 @@ namespace result {
         {
             if (this->is_ok())
                 throw unwrap_on_ok_error();
+            if (!this->m_HasValue)
+                throw cy::bad_result();
 
             return this->unwrap_err_unchecked();
         }
@@ -285,6 +298,8 @@ namespace result {
                 throw cy::get_on_err_error(
                     cy::error_formatter<typename std::remove_reference<
                         _Ety>::type>::readable(this->get_err_unchecked()));
+            if (!this->m_HasValue)
+                throw cy::bad_result();
 
             return this->get_unchecked();
         }
@@ -295,6 +310,8 @@ namespace result {
                 throw cy::get_on_err_error(
                     cy::error_formatter<typename std::remove_reference<
                         _Ety>::type>::readable(this->get_err_unchecked()));
+            if (!this->m_HasValue)
+                throw cy::bad_result();
 
             return this->get_unchecked();
         }
@@ -303,6 +320,8 @@ namespace result {
         {
             if (this->is_ok())
                 throw cy::get_on_ok_error();
+            if (!this->m_HasValue)
+                throw cy::bad_result();
 
             return this->get_err_unchecked();
         }
@@ -311,6 +330,8 @@ namespace result {
         {
             if (this->is_ok())
                 throw cy::get_on_ok_error();
+            if (!this->m_HasValue)
+                throw cy::bad_result();
 
             return this->get_err_unchecked();
         }
@@ -366,6 +387,219 @@ namespace result {
 
         inline _Ty const& get_unchecked() const { return m_Value; }
         inline _Ty&       get_unchecked() { return m_Value; }
+
+        inline _Ety get_err_unchecked() const
+            requires detail::_IsRef<_Ety>::value
+        {
+            return *m_Error;
+        }
+
+        inline _Ety get_err_unchecked()
+            requires detail::_IsRef<_Ety>::value
+        {
+            return *m_Error;
+        }
+
+        inline _Ety const& get_err_unchecked() const { return m_Error; }
+        inline _Ety&       get_err_unchecked() { return m_Error; }
+    };
+
+    template<typename _Ety>
+    class Result<void, _Ety>
+    {
+        static_assert(!std::is_same<_Ety, void>::value,
+                      "Result<T, void> is invalid! Use Maybe<T> instead");
+
+        using E = detail::_PtrIfRef<_Ety>;
+
+      public:
+        constexpr Result(Ok<void>)
+            : m_HasValue(false)
+            , m_IsError(false)
+        {
+        }
+
+        constexpr Result(Err<_Ety> err)
+            requires detail::_IsRef<_Ety>::value
+            : m_Error(&err.err)
+            , m_HasValue(true)
+            , m_IsError(true)
+        {
+        }
+
+        constexpr Result(Err<_Ety> err)
+            : m_Error(std::move(err.err))
+            , m_HasValue(true)
+            , m_IsError(true)
+        {
+        }
+
+        constexpr ~Result()
+            requires std::is_trivially_destructible<_Ety>::value
+        = default;
+
+        constexpr ~Result()
+            requires(!std::is_trivially_destructible<_Ety>::value)
+        {
+            if (m_HasValue)
+                m_Error.~_Ety();
+        }
+
+        Result(Result const&)
+            requires std::is_trivially_copyable<_Ety>::value
+        = default;
+
+        Result& operator=(Result const&)
+            requires std::is_trivially_copyable<_Ety>::value
+        = default;
+
+        Result(Result&&)
+            requires std::is_trivially_move_constructible<_Ety>::value
+        = default;
+
+        Result& operator=(Result&&)
+            requires std::is_trivially_move_assignable<_Ety>::value
+        = default;
+
+        Result(Result const& other)
+        {
+            if (!other.m_HasValue) {
+                m_HasValue = false;
+                m_IsError = false;
+                return;
+            }
+
+            m_HasValue = true;
+            m_IsError = true;
+            m_Error = other.m_Error;
+        }
+
+        Result& operator=(Result const& other)
+        {
+            if (!other.m_HasValue) {
+                m_HasValue = false;
+                m_IsError = false;
+                return *this;
+            }
+
+            m_HasValue = true;
+            m_IsError = true;
+            m_Error = other.m_Error;
+
+            return *this;
+        }
+
+        Result(Result&& source)
+        {
+            if (!source.m_HasValue) {
+                m_HasValue = false;
+                m_IsError = false;
+                return;
+            }
+
+            m_HasValue = true;
+            m_IsError = true;
+            m_Error = std::move(source.m_Error);
+        }
+
+        Result& operator=(Result&& source)
+        {
+            if (this == &source)
+                return *this;
+
+            if (!source.m_HasValue) {
+                m_HasValue = false;
+                m_IsError = false;
+                return *this;
+            }
+
+            m_HasValue = true;
+            m_IsError = true;
+            m_Error = std::move(source.m_Error);
+
+            return *this;
+        }
+
+        constexpr bool is_ok() const { return !m_IsError; }
+        constexpr bool is_error() const { return m_IsError; }
+
+        inline bool is_err_and(std::function<bool(_Ety)> f) const
+            requires detail::_IsRef<_Ety>::value
+        {
+            if (this->is_ok())
+                return false;
+
+            return f(*m_Error);
+        }
+
+        inline bool is_err_and(std::function<bool(_Ety const&)> f) const
+        {
+            if (this->is_ok())
+                return false;
+
+            return f(m_Error);
+        }
+
+        inline void unwrap()
+        {
+            if (this->is_error())
+                throw cy::unwrap_on_err_error(
+                    cy::error_formatter<typename std::remove_reference<
+                        _Ety>::type>::readable(this->get_err_unchecked()));
+        }
+
+        inline auto&& unwrap_err()
+        {
+            if (this->is_ok())
+                throw unwrap_on_ok_error();
+            if (!this->m_HasValue)
+                throw cy::bad_result();
+
+            return this->unwrap_err_unchecked();
+        }
+
+        inline auto&& get_err() const
+        {
+            if (this->is_ok())
+                throw cy::get_on_ok_error();
+            if (!this->m_HasValue)
+                throw cy::bad_result();
+
+            return this->get_err_unchecked();
+        }
+
+        inline auto&& get_err()
+        {
+            if (this->is_ok())
+                throw cy::get_on_ok_error();
+            if (!this->m_HasValue)
+                throw cy::bad_result();
+
+            return this->get_err_unchecked();
+        }
+
+        constexpr operator bool() const { return this->is_ok(); }
+
+      private:
+        union
+        {
+            E m_Error;
+        };
+        bool m_HasValue;
+        bool m_IsError;
+
+        inline _Ety unwrap_err_unchecked()
+            requires detail::_IsRef<_Ety>::value
+        {
+            m_HasValue = false;
+            return *m_Error;
+        }
+
+        inline _Ety&& unwrap_err_unchecked()
+        {
+            m_HasValue = false;
+            return std::move(m_Error);
+        }
 
         inline _Ety get_err_unchecked() const
             requires detail::_IsRef<_Ety>::value

@@ -261,6 +261,60 @@ namespace result {
             return f(m_Error);
         }
 
+        inline auto&& unwrap()
+        {
+            if (this->is_error())
+                throw cy::unwrap_on_err_error(
+                    cy::error_formatter<typename std::remove_reference<
+                        _Ety>::type>::readable(this->get_err_unchecked()));
+
+            return this->unwrap_unchecked();
+        }
+
+        inline auto&& unwrap_err()
+        {
+            if (this->is_ok())
+                throw unwrap_on_ok_error();
+
+            return this->unwrap_err_unchecked();
+        }
+
+        inline auto&& get() const
+        {
+            if (this->is_error())
+                throw cy::get_on_err_error(
+                    cy::error_formatter<typename std::remove_reference<
+                        _Ety>::type>::readable(this->get_err_unchecked()));
+
+            return this->get_unchecked();
+        }
+
+        inline auto&& get()
+        {
+            if (this->is_error())
+                throw cy::get_on_err_error(
+                    cy::error_formatter<typename std::remove_reference<
+                        _Ety>::type>::readable(this->get_err_unchecked()));
+
+            return this->get_unchecked();
+        }
+
+        inline auto&& get_err() const
+        {
+            if (this->is_ok())
+                throw cy::get_on_ok_error();
+
+            return this->get_err_unchecked();
+        }
+
+        inline auto&& get_err()
+        {
+            if (this->is_ok())
+                throw cy::get_on_ok_error();
+
+            return this->get_err_unchecked();
+        }
+
         constexpr operator bool() const { return this->is_ok(); }
 
       private:
@@ -271,6 +325,62 @@ namespace result {
         };
         bool m_HasValue;
         bool m_IsError;
+
+        inline _Ty unwrap_unchecked()
+            requires detail::_IsRef<_Ty>::value
+        {
+            m_HasValue = false;
+            return *m_Value;
+        }
+
+        inline _Ty&& unwrap_unchecked()
+        {
+            m_HasValue = false;
+            return std::move(m_Value);
+        }
+
+        inline _Ety unwrap_err_unchecked()
+            requires detail::_IsRef<_Ety>::value
+        {
+            m_HasValue = false;
+            return *m_Error;
+        }
+
+        inline _Ety&& unwrap_err_unchecked()
+        {
+            m_HasValue = false;
+            return std::move(m_Error);
+        }
+
+        inline _Ty get_unchecked() const
+            requires detail::_IsRef<_Ty>::value
+        {
+            return *m_Value;
+        }
+
+        inline _Ty get_unchecked()
+            requires detail::_IsRef<_Ty>::value
+        {
+            return *m_Value;
+        }
+
+        inline _Ty const& get_unchecked() const { return m_Value; }
+        inline _Ty&       get_unchecked() { return m_Value; }
+
+        inline _Ety get_err_unchecked() const
+            requires detail::_IsRef<_Ety>::value
+        {
+            return *m_Error;
+        }
+
+        inline _Ety get_err_unchecked()
+            requires detail::_IsRef<_Ety>::value
+        {
+            return *m_Error;
+        }
+
+        inline _Ety const& get_err_unchecked() const { return m_Error; }
+        inline _Ety&       get_err_unchecked() { return m_Error; }
     };
 } // namespace result
 

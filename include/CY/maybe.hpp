@@ -1,3 +1,14 @@
+/**
+ * @file maybe.hpp
+ * @author Jesús Blanco
+ * @brief Maybe implementation.
+ * @version 4.0.0
+ * @date 2026-06-17
+ *
+ * @copyright Copyright (c) Jesús Blanco. See LICENSE for details.
+ *
+ */
+
 #pragma once
 
 #include "CY/core.hpp"
@@ -16,6 +27,10 @@ namespace detail {
                                   _Ty>::type;
 } // namespace detail
 
+/**
+ * @brief `Some` value of type `T`.
+ *
+ */
 template<typename T>
 class Some
 {
@@ -33,13 +48,19 @@ class Some
     {
     }
 };
-
+/**
+ * @brief No value.
+ *
+ */
 class None
 {
   public:
     explicit constexpr None() = default;
 };
 
+/**
+ * @brief Represents a value that might or might not exist.
+ */
 template<typename _Ty>
 class Maybe
 {
@@ -124,9 +145,22 @@ class Maybe
         return *this;
     }
 
+    /**
+     * @brief Whether this `Maybe` is `Some`.
+     *
+     */
     constexpr bool is_some() const { return m_HasValue; }
+    /**
+     * @brief Whether this `Maybe` is `None`.
+     *
+     */
     constexpr bool is_none() const { return !m_HasValue; }
 
+    /**
+     * @brief Whether this `Maybe` is `Some` and matches a predicate `f`.
+     *
+     * @param f The predicate to evaluate.
+     */
     inline bool is_some_and(std::function<bool(_Ty)> f) const
         requires detail::_IsRef<_Ty>::value
     {
@@ -135,7 +169,11 @@ class Maybe
 
         return f(*m_Value);
     }
-
+    /**
+     * @brief Whether this `Maybe` is `Some` and matches a predicate `f`.
+     *
+     * @param f The predicate to evaluate.
+     */
     inline bool is_some_and(std::function<bool(_Ty const&)> f) const
     {
         if (this->is_none())
@@ -143,33 +181,63 @@ class Maybe
 
         return f(m_Value);
     }
-
-    inline auto&& unwrap()
+    /**
+     * @brief Returns the contained `Some` value, allowing to move it out of
+     * `Maybe`. Since this function moves out the value, it should only be
+     * called once.
+     *
+     * @exception cy::unwrap_none_error Thrown if `Maybe` does not
+     * contain an `Ok` value.
+     *
+     */
+    [[nodiscard]] inline auto&& unwrap()
     {
         if (this->is_none())
             throw cy::unwrap_none_error();
 
         return this->unwrap_unchecked();
     }
-
-    inline auto&& get() const
+    /**
+     * @brief Returns a const reference to the contained `Some` value. This
+     * function does not move anything and it's perfectly safe to call multiple
+     * times.
+     *
+     * @exception cy::unwrap_none_error Thrown if `Maybe` does not
+     * contain an `Ok` value.
+     *
+     */
+    [[nodiscard]] inline auto&& get() const
     {
         if (this->is_none())
             throw cy::get_none_error();
 
         return this->get_unchecked();
     }
-
-    inline auto&& get()
+    /**
+     * @brief Returns a reference to the contained `Some` value. This
+     * function does not move anything and it's perfectly safe to call multiple
+     * times.
+     *
+     * @exception cy::unwrap_none_error Thrown if `Maybe` does not
+     * contain an `Ok` value.
+     *
+     */
+    [[nodiscard]] inline auto&& get()
     {
         if (this->is_none())
             throw cy::get_none_error();
 
         return this->get_unchecked();
     }
-
+    /**
+     * @brief Converts this `Maybe<T>` into a `Maybe<U>` by using a function
+     * that accepts `T` and returns `U`. The provided function is only called if
+     * `Maybe` is `Some`, otherwise nothing happens and `None` is returned.
+     *
+     * @param f Function mapping `T` to `U`.
+     */
     template<typename U>
-    inline Maybe<U> map(std::function<U(_Ty)> f)
+    [[nodiscard]] inline Maybe<U> map(std::function<U(_Ty)> f)
     {
         if (this->is_none())
             return None();
@@ -177,7 +245,12 @@ class Maybe
         return Some<U>(f(this->unwrap_unchecked()));
     }
 
-    constexpr operator bool() const { return this->is_some(); }
+    /**
+     * @brief Converts this `Maybe` into a boolean. Equivalent to
+     * `Maybe::is_some`.
+     *
+     */
+    [[nodiscard]] constexpr operator bool() const { return this->is_some(); }
 
   private:
     union

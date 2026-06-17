@@ -2,7 +2,7 @@
  * @file result.hpp
  * @author Jesús Blanco
  * @brief Result implementation.
- * @version 1.0.0
+ * @version 4.0.0
  * @date 2025-12-28
  *
  * @copyright Copyright (c) Jesús Blanco. See LICENSE for details.
@@ -27,6 +27,11 @@ namespace detail {
                                   _Ty>::type;
 } // namespace detail
 
+/**
+ * @brief Represents an operation that succeeded and returned a value of type
+ * `T`.
+ *
+ */
 template<typename T>
 class Ok
 {
@@ -45,6 +50,10 @@ class Ok
     }
 };
 
+/**
+ * @brief Represents an operation that succeeded and does not return a value.
+ *
+ */
 template<>
 class Ok<void>
 {
@@ -54,6 +63,11 @@ class Ok<void>
 
 Ok() -> Ok<void>;
 
+/**
+ * @brief Represents an operation that failed and returned an error of type
+ * `E`.
+ *
+ */
 template<typename E>
 class Err
 {
@@ -73,8 +87,13 @@ class Err
 };
 
 namespace result {
+    /**
+     * @brief Represents an operation that might fail, returning `Ok` on
+     * success, and `Err` on failure.
+     *
+     */
     template<typename _Ty, typename _Ety>
-    class Result
+    class [[nodiscard("result must be handled")]] Result
     {
         static_assert(!std::is_same<_Ety, void>::value,
                       "Result<T, void> is invalid! Use Maybe<T> instead");
@@ -233,9 +252,25 @@ namespace result {
             return *this;
         }
 
+        /**
+         * @brief Whether this result is `Ok`, meaning the opeartion succeeded
+         * and returned a value.
+         *
+         */
         constexpr bool is_ok() const { return !m_IsError; }
+        /**
+         * @brief Whether this result is `Err`, meaning the operation failed and
+         * returned an error.
+         *
+         */
         constexpr bool is_error() const { return m_IsError; }
 
+        /**
+         * @brief Whether this result is `Ok` and the value inside matches a
+         * predicate `f`.
+         *
+         * @param f The predicate to evaluate.
+         */
         inline bool is_ok_and(std::function<bool(_Ty)> f) const
             requires detail::_IsRef<_Ty>::value
         {
@@ -244,7 +279,12 @@ namespace result {
 
             return f(*m_Value);
         }
-
+        /**
+         * @brief Whether this result is `Ok` and the value inside matches a
+         * predicate `f`.
+         *
+         * @param f The predicate to evaluate.
+         */
         inline bool is_ok_and(std::function<bool(_Ty const&)> f) const
         {
             if (this->is_error())
@@ -252,7 +292,12 @@ namespace result {
 
             return f(m_Value);
         }
-
+        /**
+         * @brief Whether this result is `Err` and the error inside matches a
+         * predicate `f`.
+         *
+         * @param f The predicate to evaluate.
+         */
         inline bool is_err_and(std::function<bool(_Ety)> f) const
             requires detail::_IsRef<_Ety>::value
         {
@@ -261,7 +306,12 @@ namespace result {
 
             return f(*m_Error);
         }
-
+        /**
+         * @brief Whether this result is `Err` and the error inside matches a
+         * predicate `f`.
+         *
+         * @param f The predicate to evaluate.
+         */
         inline bool is_err_and(std::function<bool(_Ety const&)> f) const
         {
             if (this->is_ok())
@@ -269,8 +319,18 @@ namespace result {
 
             return f(m_Error);
         }
-
-        inline auto&& unwrap()
+        /**
+         * @brief Returns the contained `Ok` value, allowing to move it out of
+         * the `Result`. Since this function moves out the value, it should only
+         * be called once.
+         *
+         * @exception cy::unwrap_on_err_error Thrown if the `Result` does not
+         * contain an `Ok` value.
+         * @exception cy::bad_result Throw if the `Result` no longers contains
+         * the value (it was has already been unwrapped).
+         *
+         */
+        [[nodiscard]] inline auto&& unwrap()
         {
             if (this->is_error())
                 throw cy::unwrap_on_err_error(
@@ -281,8 +341,18 @@ namespace result {
 
             return this->unwrap_unchecked();
         }
-
-        inline auto&& unwrap_err()
+        /**
+         * @brief Returns the contained `Err` value, allowing to move it out of
+         * the `Result`. Since this function moves out the value, it should only
+         * be called once.
+         *
+         * @exception cy::unwrap_on_ok_error Thrown if the `Result` does not
+         * contain an `Err` value.
+         * @exception cy::bad_result Throw if the `Result` no longers contains
+         * the value (it was has already been unwrapped).
+         *
+         */
+        [[nodiscard]] inline auto&& unwrap_err()
         {
             if (this->is_ok())
                 throw unwrap_on_ok_error();
@@ -291,8 +361,18 @@ namespace result {
 
             return this->unwrap_err_unchecked();
         }
-
-        inline auto&& get() const
+        /**
+         * @brief Returns a const reference to the contained `Ok` value. This
+         * function does not move anything and it's perfectly safe to call
+         * multiple times.
+         *
+         * @exception cy::get_on_err_error Thrown if the `Result` does not
+         * contain an `Ok` value.
+         * @exception cy::bad_result Throw if the `Result` no longers contains
+         * the value (it was has already been unwrapped).
+         *
+         */
+        [[nodiscard]] inline auto&& get() const
         {
             if (this->is_error())
                 throw cy::get_on_err_error(
@@ -303,8 +383,18 @@ namespace result {
 
             return this->get_unchecked();
         }
-
-        inline auto&& get()
+        /**
+         * @brief Returns a reference to the contained `Ok` value. This
+         * function does not move anything and it's perfectly safe to call
+         * multiple times.
+         *
+         * @exception cy::get_on_err_error Thrown if the `Result` does not
+         * contain an `Ok` value.
+         * @exception cy::bad_result Throw if the `Result` no longers contains
+         * the value (it was has already been unwrapped).
+         *
+         */
+        [[nodiscard]] inline auto&& get()
         {
             if (this->is_error())
                 throw cy::get_on_err_error(
@@ -315,8 +405,18 @@ namespace result {
 
             return this->get_unchecked();
         }
-
-        inline auto&& get_err() const
+        /**
+         * @brief Returns a const reference to the contained `Err` value. This
+         * function does not move anything and it's perfectly safe to call
+         * multiple times.
+         *
+         * @exception cy::get_on_ok_error Thrown if the `Result` does not
+         * contain an `Err` value.
+         * @exception cy::bad_result Throw if the `Result` no longers contains
+         * the value (it was has already been unwrapped).
+         *
+         */
+        [[nodiscard]] inline auto&& get_err() const
         {
             if (this->is_ok())
                 throw cy::get_on_ok_error();
@@ -325,8 +425,18 @@ namespace result {
 
             return this->get_err_unchecked();
         }
-
-        inline auto&& get_err()
+        /**
+         * @brief Returns a reference to the contained `Ok` value. This
+         * function does not move anything and it's perfectly safe to call
+         * multiple times.
+         *
+         * @exception cy::get_on_err_error Thrown if the `Result` does not
+         * contain an `Ok` value.
+         * @exception cy::bad_result Throw if the `Result` no longers contains
+         * the value (it was has already been unwrapped).
+         *
+         */
+        [[nodiscard]] inline auto&& get_err()
         {
             if (this->is_ok())
                 throw cy::get_on_ok_error();
@@ -335,8 +445,12 @@ namespace result {
 
             return this->get_err_unchecked();
         }
-
-        constexpr operator bool() const { return this->is_ok(); }
+        /**
+         * @brief Converts this `Result` into a boolean. Equivalent to
+         * `Result::is_ok`.
+         *
+         */
+        [[nodiscard]] constexpr operator bool() const { return this->is_ok(); }
 
       private:
         union
@@ -404,8 +518,13 @@ namespace result {
         inline _Ety&       get_err_unchecked() { return m_Error; }
     };
 
+    /**
+     * @brief Represents an operation that might fail, returning nothing
+     * (`Ok<void>`) on success, and `Err` on failure.
+     *
+     */
     template<typename _Ety>
-    class Result<void, _Ety>
+    class [[nodiscard("result must be handled")]] Result<void, _Ety>
     {
         static_assert(!std::is_same<_Ety, void>::value,
                       "Result<T, void> is invalid! Use Maybe<T> instead");
@@ -520,9 +639,23 @@ namespace result {
             return *this;
         }
 
+        /**
+         * @brief Whether this result is `Ok`, meaning the opeartion succeeded.
+         *
+         */
         constexpr bool is_ok() const { return !m_IsError; }
+        /**
+         * @brief Whether this result is `Err`, meaning the opeartion failed
+         * and returned an error.
+         *
+         */
         constexpr bool is_error() const { return m_IsError; }
-
+        /**
+         * @brief Whether this result is `Err` and the error inside matches a
+         * predicate `f`.
+         *
+         * @param f The predicate to evaluate.
+         */
         inline bool is_err_and(std::function<bool(_Ety)> f) const
             requires detail::_IsRef<_Ety>::value
         {
@@ -531,7 +664,12 @@ namespace result {
 
             return f(*m_Error);
         }
-
+        /**
+         * @brief Whether this result is `Err` and the error inside matches a
+         * predicate `f`.
+         *
+         * @param f The predicate to evaluate.
+         */
         inline bool is_err_and(std::function<bool(_Ety const&)> f) const
         {
             if (this->is_ok())
@@ -539,7 +677,16 @@ namespace result {
 
             return f(m_Error);
         }
-
+        /**
+         * @brief Returns the contained void if the result is `Ok` and throws an
+         * exception if the `Result` is `Err`.
+         *
+         * @exception cy::unwrap_on_err_error Thrown if the `Result` does not
+         * contain an `Ok` value.
+         * @exception cy::bad_result Throw if the `Result` no longers contains
+         * the value (it was has already been unwrapped).
+         *
+         */
         inline void unwrap()
         {
             if (this->is_error())
@@ -547,8 +694,18 @@ namespace result {
                     cy::error_formatter<typename std::remove_reference<
                         _Ety>::type>::readable(this->get_err_unchecked()));
         }
-
-        inline auto&& unwrap_err()
+        /**
+         * @brief Returns the contained `Err` value, allowing to move it out of
+         * the `Result`. Since this function moves out the value, it should only
+         * be called once.
+         *
+         * @exception cy::unwrap_on_ok_error Thrown if the `Result` does not
+         * contain an `Err` value.
+         * @exception cy::bad_result Throw if the `Result` no longers contains
+         * the value (it was has already been unwrapped).
+         *
+         */
+        [[nodiscard]] inline auto&& unwrap_err()
         {
             if (this->is_ok())
                 throw unwrap_on_ok_error();
@@ -557,8 +714,18 @@ namespace result {
 
             return this->unwrap_err_unchecked();
         }
-
-        inline auto&& get_err() const
+        /**
+         * @brief Returns a const reference to the contained `Err` value. This
+         * function does not move anything and it's perfectly safe to call
+         * multiple times.
+         *
+         * @exception cy::get_on_ok_error Thrown if the `Result` does not
+         * contain an `Err` value.
+         * @exception cy::bad_result Throw if the `Result` no longers contains
+         * the value (it was has already been unwrapped).
+         *
+         */
+        [[nodiscard]] inline auto&& get_err() const
         {
             if (this->is_ok())
                 throw cy::get_on_ok_error();
@@ -567,8 +734,18 @@ namespace result {
 
             return this->get_err_unchecked();
         }
-
-        inline auto&& get_err()
+        /**
+         * @brief Returns a reference to the contained `Err` value. This
+         * function does not move anything and it's perfectly safe to call
+         * multiple times.
+         *
+         * @exception cy::get_on_ok_error Thrown if the `Result` does not
+         * contain an `Err` value.
+         * @exception cy::bad_result Throw if the `Result` no longers contains
+         * the value (it was has already been unwrapped).
+         *
+         */
+        [[nodiscard]] inline auto&& get_err()
         {
             if (this->is_ok())
                 throw cy::get_on_ok_error();
@@ -577,8 +754,12 @@ namespace result {
 
             return this->get_err_unchecked();
         }
-
-        constexpr operator bool() const { return this->is_ok(); }
+        /**
+         * @brief Converts this `Result` into a boolean. Equivalent to
+         * `Result::is_ok`.
+         *
+         */
+        [[nodiscard]] constexpr operator bool() const { return this->is_ok(); }
 
       private:
         union
@@ -618,6 +799,14 @@ namespace result {
     };
 } // namespace result
 
+/**
+ * @brief Represents an operation that might fail. It returns `Ok` on success,
+ * and `Err` on failure. This is a template specialization for the most common
+ * use case of `Result<T, str>` (the error type is just an string error
+ * message). If you want to return some other error type, use
+ * cy::result::Result, and specialize cy::error_formatter for you error
+ * type.
+ */
 template<typename T>
 using Result = result::Result<T, str>;
 } // namespace cy

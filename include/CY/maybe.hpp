@@ -74,6 +74,56 @@ class Maybe
             m_Value.~_Ty();
     }
 
+    Maybe(Maybe const&)
+        requires std::is_trivially_copyable<_Ty>::value
+    = default;
+
+    Maybe& operator=(Maybe const&)
+        requires std::is_trivially_copyable<_Ty>::value
+    = default;
+
+    Maybe(Maybe const& other)
+    {
+        m_HasValue = other.m_HasValue;
+        if (m_HasValue)
+            m_Value = other.m_Value;
+    }
+
+    Maybe& operator=(Maybe const& other)
+    {
+        m_HasValue = other.m_HasValue;
+        if (m_HasValue)
+            m_Value = other.m_Value;
+
+        return *this;
+    }
+
+    Maybe(Maybe&&)
+        requires std::is_trivially_move_constructible<_Ty>::value
+    = default;
+
+    Maybe& operator=(Maybe&&)
+        requires std::is_trivially_move_assignable<_Ty>::value
+    = default;
+
+    Maybe(Maybe&& source)
+    {
+        m_HasValue = source.m_HasValue;
+        if (m_HasValue)
+            m_Value = std::move(source.m_Value);
+    }
+
+    Maybe& operator=(Maybe&& source)
+    {
+        if (this != &source) {
+            m_HasValue = source.m_HasValue;
+            if (m_HasValue)
+                m_Value = std::move(source.m_Value);
+        }
+
+        return *this;
+    }
+
     constexpr bool is_some() const { return m_HasValue; }
     constexpr bool is_none() const { return !m_HasValue; }
 

@@ -227,7 +227,7 @@ class Err
     E m_Error;
 };
 
-namespace basic_result {
+namespace result {
     /**
      * @brief Represents an operation that might fail, returning `Ok` on
      * success, and `Err` on failure.
@@ -632,5 +632,5 @@ namespace basic_result {
             return std::move(m_Error);
         }
     };
-} // namespace basic_result
+} // namespace result
 } // namespace cy
